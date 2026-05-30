@@ -152,8 +152,8 @@
       <label for="apiTokenInstance">ApiTokenInstance</label>
       <input id="apiTokenInstance" type="text" autocomplete="off" placeholder="Ваш токен">
 
-      <button type="button" data-method="getSettings">getSettings</button>
-      <button type="button" data-method="getStateInstance">getStateInstance</button>
+      <button id="getSettingsButton" type="button">getSettings</button>
+      <button id="getStateButton" type="button">getStateInstance</button>
 
       <h2>Отправка сообщения</h2>
 
@@ -163,7 +163,7 @@
       <label for="messageText">Текст сообщения</label>
       <textarea id="messageText" placeholder="Введите сообщение"></textarea>
 
-      <button type="button" data-method="sendMessage">sendMessage</button>
+      <button id="sendMessageButton" type="button">sendMessage</button>
 
       <h2>Отправка файла</h2>
 
@@ -173,7 +173,7 @@
       <label for="fileUrl">Ссылка на файл</label>
       <input id="fileUrl" type="url" autocomplete="off" placeholder="https://example.com/file.pdf">
 
-      <button type="button" data-method="sendFileByUrl">sendFileByUrl</button>
+      <button id="sendFileButton" type="button">sendFileByUrl</button>
     </section>
 
     <section class="response-section">
@@ -183,9 +183,6 @@
   </main>
 
   <script>
-    const responseField = document.querySelector('#response');
-    const buttons = document.querySelectorAll('button[data-method]');
-
     const fields = {
       idInstance: document.querySelector('#idInstance'),
       apiTokenInstance: document.querySelector('#apiTokenInstance'),
@@ -195,11 +192,67 @@
       fileUrl: document.querySelector('#fileUrl')
     };
 
-    buttons.forEach((button) => {
-      button.addEventListener('click', () => callApi(button.dataset.method, button));
-    });
+    const responseField = document.querySelector('#response');
+    const getSettingsButton = document.querySelector('#getSettingsButton');
+    const getStateButton = document.querySelector('#getStateButton');
+    const sendMessageButton = document.querySelector('#sendMessageButton');
+    const sendFileButton = document.querySelector('#sendFileButton');
 
-    async function callApi(method, button) {
+    getSettingsButton.addEventListener('click', getSettings);
+    getStateButton.addEventListener('click', getStateInstance);
+    sendMessageButton.addEventListener('click', sendMessage);
+    sendFileButton.addEventListener('click', sendFileByUrl);
+
+    function getSettings() {
+      callApi('getSettings', 'GET', null, getSettingsButton);
+    }
+
+    function getStateInstance() {
+      callApi('getStateInstance', 'GET', null, getStateButton);
+    }
+
+    function sendMessage() {
+      const phone = fields.messagePhone.value.trim();
+      const message = fields.messageText.value.trim();
+
+      if (!phone || !message) {
+        showError('Заполните номер получателя и текст сообщения.');
+        return;
+      }
+
+      callApi(
+        'sendMessage',
+        'POST',
+        {
+          chatId: `${phone}@c.us`,
+          message
+        },
+        sendMessageButton
+      );
+    }
+
+    function sendFileByUrl() {
+      const phone = fields.filePhone.value.trim();
+      const urlFile = fields.fileUrl.value.trim();
+
+      if (!phone || !urlFile) {
+        showError('Заполните номер получателя и ссылку на файл.');
+        return;
+      }
+
+      callApi(
+        'sendFileByUrl',
+        'POST',
+        {
+          chatId: `${phone}@c.us`,
+          urlFile,
+          fileName: getFileName(urlFile)
+        },
+        sendFileButton
+      );
+    }
+
+    async function callApi(apiMethod, httpMethod, body, button) {
       responseField.classList.remove('error');
 
       const idInstance = fields.idInstance.value.trim();
@@ -210,21 +263,16 @@
         return;
       }
 
-      const url = `https://api.green-api.com/waInstance${idInstance}/${method}/${apiTokenInstance}`;
-      const request = buildRequest(method);
-
-      if (!request) {
-        return;
-      }
+      const url = `https://api.green-api.com/waInstance${idInstance}/${apiMethod}/${apiTokenInstance}`;
 
       button.disabled = true;
       responseField.value = 'Отправляю запрос...';
 
       try {
         const fetchOptions = {
-          method: request.method,
-          headers: request.body ? { 'Content-Type': 'application/json' } : undefined,
-          body: request.body ? JSON.stringify(request.body) : undefined
+          method: httpMethod,
+          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body: body ? JSON.stringify(body) : undefined
         };
 
         const response = await fetch(url, fetchOptions);
@@ -241,53 +289,6 @@
       } finally {
         button.disabled = false;
       }
-    }
-
-    function buildRequest(method) {
-      if (method === 'getSettings' || method === 'getStateInstance') {
-        return { method: 'GET' };
-      }
-
-      if (method === 'sendMessage') {
-        const phone = fields.messagePhone.value.trim();
-        const message = fields.messageText.value.trim();
-
-        if (!phone || !message) {
-          showError('Заполните номер получателя и текст сообщения.');
-          return null;
-        }
-
-        return {
-          method: 'POST',
-          body: {
-            chatId: `${phone}@c.us`,
-            message
-          }
-        };
-      }
-
-      if (method === 'sendFileByUrl') {
-        const phone = fields.filePhone.value.trim();
-        const urlFile = fields.fileUrl.value.trim();
-        const fileName = getFileName(urlFile);
-
-        if (!phone || !urlFile) {
-          showError('Заполните номер получателя и ссылку на файл.');
-          return null;
-        }
-
-        return {
-          method: 'POST',
-          body: {
-            chatId: `${phone}@c.us`,
-            urlFile,
-            fileName
-          }
-        };
-      }
-
-      showError(`Неизвестный метод: ${method}`);
-      return null;
     }
 
     function getFileName(urlFile) {
