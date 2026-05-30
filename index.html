@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GREEN-API: getStateInstance</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f7f5;
+      color: #17221b;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(720px, 100%);
+      background: #ffffff;
+      border: 1px solid #d8e3dc;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 12px 34px rgba(22, 48, 32, 0.1);
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 6px;
+      padding: 11px 12px;
+      border: 1px solid #b8c8bf;
+      border-radius: 6px;
+      font: inherit;
+    }
+
+    button {
+      margin-top: 18px;
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 16px;
+      background: #198754;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+
+    pre {
+      margin: 18px 0 0;
+      min-height: 120px;
+      max-height: 360px;
+      overflow: auto;
+      padding: 14px;
+      border-radius: 6px;
+      background: #111815;
+      color: #d9ffe8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error {
+      color: #ffb4b4;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Проверка GREEN-API getStateInstance</h1>
+
+    <form id="stateForm">
+      <label for="idInstance">idInstance</label>
+      <input id="idInstance" name="idInstance" autocomplete="off" required placeholder="Например: 1101000001">
+
+      <label for="apiTokenInstance">ApiTokenInstance</label>
+      <input id="apiTokenInstance" name="apiTokenInstance" autocomplete="off" required placeholder="Вставьте токен инстанса">
+
+      <button id="submitButton" type="submit">Проверить состояние</button>
+    </form>
+
+    <pre id="result">Ответ API появится здесь.</pre>
+  </main>
+
+  <script>
+    const form = document.querySelector('#stateForm');
+    const button = document.querySelector('#submitButton');
+    const result = document.querySelector('#result');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const idInstance = form.idInstance.value.trim();
+      const apiTokenInstance = form.apiTokenInstance.value.trim();
+      const url = `https://api.green-api.com/waInstance${idInstance}/getStateInstance/${apiTokenInstance}`;
+
+      button.disabled = true;
+      result.classList.remove('error');
+      result.textContent = 'Отправляю запрос...';
+
+      try {
+        const response = await fetch(url);
+        const text = await response.text();
+
+        let body = text;
+        try {
+          body = JSON.stringify(JSON.parse(text), null, 2);
+        } catch {
+          // GREEN-API обычно возвращает JSON, но оставим текст на случай ошибки прокси/сети.
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}\n${body}`);
+        }
+
+        result.textContent = body;
+      } catch (error) {
+        result.classList.add('error');
+        result.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
