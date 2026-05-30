@@ -212,7 +212,7 @@
     }
 
     function sendMessage() {
-      const phone = fields.messagePhone.value.trim();
+      const phone = normalizePhone(fields.messagePhone.value);
       const message = fields.messageText.value.trim();
 
       if (!phone || !message) {
@@ -232,7 +232,7 @@
     }
 
     function sendFileByUrl() {
-      const phone = fields.filePhone.value.trim();
+      const phone = normalizePhone(fields.filePhone.value);
       const urlFile = fields.fileUrl.value.trim();
 
       if (!phone || !urlFile) {
@@ -299,6 +299,20 @@
       } catch {
         return 'file';
       }
+    }
+
+    function normalizePhone(input) {
+      let phone = input.trim().replace('@c.us', '').replace(/\D/g, '');
+
+      if (phone.length === 10) {
+        phone = `7${phone}`;
+      }
+
+      if (phone.length === 11 && phone.startsWith('8')) {
+        phone = `7${phone.slice(1)}`;
+      }
+
+      return phone;
     }
 
     function formatResponse(text) {
